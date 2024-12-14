@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Nationalities</title>
+    <meta name="description" content="Visualizing UOB student nationality data">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.0.6/css/pico.min.css">
+</head>
+<body>
+<header>
+    <h1>UOB Bachelor Student Nationality Data</h1>
+</header>
+<main>
+    <form id="search-form">
+        <input type="text" id="nationality-search" placeholder="Search by nationality">
+        <button type="submit">Search</button>
+        <button type="reset" onclick="fetchStudentData()">Reset</button>
+    </form>
+    <div class="overflow-container">
+        <table id="student-table" class="striped">
+            <thead>
+                <tr>
+                    <th>Year</th>
+                    <th>Semester</th>
+                    <th>Program</th>
+                    <th>Nationality</th>
+                    <th>College</th>
+                    <th>Student Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="6">Loading...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+<script>
+// Define API URL
+const apiUrl = "https://data.gov.bh/api/explore/v2.1/catalog/datasets/01-statistics-of-students-nationalities_updated/records?where=colleges%20like%20%22IT%22%20AND%20the_programs%20like%20%22bachelor%22&limit=100";
+
+// Fetch and display data
+async function fetchStudentData(searchQuery = "") {
+    try {
+        const response = await fetch(apiUrl);
+
+        if (!response.ok) {
+            throw new Error("Unable to retrieve data from the API");
+        }
+
+        const data = await response.json();
+        const studentsData = data.results || [];
+
+        // Filter data based on search query
+        const filteredData = studentsData.filter(student => {
+            const nationality = student.nationality || "";
+            return !searchQuery || nationality.toLowerCase().includes(searchQuery.toLowerCase());
+        });
+
+        displayStudentData(filteredData);
+    } catch (error) {
+        displayError(error.message);
+    }
+}
+
+// Display data in the table
+function displayStudentData(students) {
+    const tableBody = document.querySelector("#student-table tbody");
+    tableBody.innerHTML = "";
+
+    if (students.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="6">No data found.</td></tr>`;
+        return;
+    }
+
+    students.forEach(student => {
+        const year = student.year || "Unknown";
+        const semester = student.semester || "Unknown";
+        const program = student.the_programs || "Not specified";
+        const nationality = student.nationality || "Not provided";
+        const college = student.colleges || "Unknown";
+        const count = student.number_of_students || "N/A";
+
+        const row = `<tr>
+            <td>${year}</td>
+            <td>${semester}</td>
+            <td>${program}</td>
+            <td>${nationality}</td>
+            <td>${college}</td>
+            <td>${count}</td>
+        </tr>`;
+
+        tableBody.insertAdjacentHTML("beforeend", row);
+    });
+}
+
+// Display error message
+function displayError(message) {
+    const tableBody = document.querySelector("#student-table tbody");
+    tableBody.innerHTML = `<tr><td colspan="6" class="error">${message}</td></tr>`;
+}
+
+// Handle search form submission
+document.querySelector("#search-form").addEventListener("submit", event => {
+    event.preventDefault();
+    const searchQuery = document.querySelector("#nationality-search").value.trim();
+    fetchStudentData(searchQuery);
+});
+
+// Fetch initial data on page load
+fetchStudentData();
+</script>
+</body>
+</html>
